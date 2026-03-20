@@ -45,9 +45,10 @@ function Particles() {
 
 function Scene() {
   const group = useRef<any>()
+  const timer = useRef(new THREE.Timer())
 
   useFrame((state) => {
-    const t = state.clock.getElapsedTime()
+    const t = timer.current.getElapsed()
 
     // auto rotation
     group.current.rotation.y = t * 0.2

@@ -1,0 +1,35 @@
+# Python requirements for portfolio project
+# Equivalent dependencies for the Next.js portfolio application
+
+# Web framework (equivalent to Next.js)
+flask==2.3.3
+django==4.2.7
+
+# Data processing and utilities
+numpy==1.24.3
+pandas==2.0.3
+
+# 3D graphics (equivalent to Three.js/React Three Fiber)
+pyvista==0.42.3
+vtk==9.2.6
+
+# Animation and motion (equivalent to Framer Motion/GSAP)
+matplotlib==3.7.2
+plotly==5.15.0
+
+# Math and noise generation (equivalent to simplex-noise)
+scipy==1.11.3
+noise==1.2.2
+
+# Web development utilities
+requests==2.31.0
+beautifulsoup4==4.12.2
+
+# Development tools
+pytest==7.4.0
+black==23.7.0
+flake8==6.0.0
+
+# Optional: For deployment
+gunicorn==21.2.0
+whitenoise==6.6.0
