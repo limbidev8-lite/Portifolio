@@ -26,15 +26,14 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
     let current = ""
 
     typingRef.current = setInterval(() => {
-      const chunkSize = 3
-      current += text.slice(i, i + chunkSize)
+      current += text[i]
       setOutput(current)
-      i += chunkSize
+      i++
 
-      if (i >= text.length) {
-        if (typingRef.current) clearInterval(typingRef.current)
+      if (i >= text.length && typingRef.current) {
+        clearInterval(typingRef.current)
       }
-    }, 10)
+    }, 20)
   }
 
   /* =========================
@@ -125,14 +124,14 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   }
 
   /* =========================
-     FOCUS ONLY ON USER TAP ✅
+     ONLY FOCUS WHEN CLICKING INPUT AREA
   ========================= */
-  const focusInput = () => {
+  const handleInputClick = () => {
     inputRef.current?.focus()
   }
 
   /* =========================
-     DRAG (DISABLE ON MOBILE)
+     DRAG (DISABLE MOBILE)
   ========================= */
   const onMouseDown = (e: any) => {
     if (window.innerWidth < 768) return
@@ -160,40 +159,28 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
     document.body.style.cursor = "grab"
   }
 
-  /* =========================
-     UI
-  ========================= */
   return (
     <div
-      onClick={focusInput} // 🔥 ONLY HERE triggers keyboard
-      className={`h-screen w-full flex items-center justify-center text-green-400 font-mono transition-all duration-500 ${
+      className={`h-screen w-full flex items-center justify-center text-green-400 font-mono ${
         glowExit ? "bg-green-500/20 scale-105" : ""
       }`}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
     >
-      {/* 🔥 HIDDEN INPUT */}
+      {/* 🔥 REAL INPUT (VISIBLE + CONTROLLED) */}
       <input
         ref={inputRef}
         value={commandInput}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        className="absolute opacity-0"
+        className="absolute top-6 left-1/2 -translate-x-1/2 bg-transparent border-none outline-none text-green-400 text-sm w-[300px] text-center"
+        placeholder="tap here to type..."
       />
 
-      {/* TERMINAL DISPLAY */}
-      <div className="absolute top-6 w-full flex justify-center pointer-events-none">
-        <div className="flex items-center text-green-400 text-sm tracking-widest">
-          <span className="mr-2">C:\SYSTEM&gt;</span>
-          <span>{commandInput}</span>
-          <span className="animate-pulse ml-1">█</span>
-        </div>
-      </div>
-
-      {/* INSTRUCTION */}
+      {/* HINT */}
       {showHint && (
         <div className="absolute top-14 w-full text-center text-sm animate-pulse">
-          tap anywhere to type or use <span className="text-white">cd ..</span>
+          tap input to type or use <span className="text-white">cd ..</span>
         </div>
       )}
 
@@ -203,7 +190,6 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
         style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
         className="relative w-[600px] max-w-full border border-green-500 p-6 bg-black/80 shadow-[0_0_20px_#00ff00]"
       >
-        {/* CLOSE */}
         <button
           onClick={handleExit}
           className="absolute top-2 right-3 text-green-400 hover:text-red-400 text-lg"
