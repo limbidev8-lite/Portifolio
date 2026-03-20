@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef } from "react"
 
 export default function SystemUI({ onExit }: { onExit?: () => void }) {
   const [output, setOutput] = useState("")
@@ -110,7 +110,7 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   }
 
   /* =========================
-     INPUT HANDLING (MOBILE FIX 🔥)
+     INPUT HANDLING
   ========================= */
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShowHint(false)
@@ -125,21 +125,17 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   }
 
   /* =========================
-     AUTO FOCUS ON CLICK
+     FOCUS ONLY ON USER TAP ✅
   ========================= */
   const focusInput = () => {
     inputRef.current?.focus()
   }
 
-  useEffect(() => {
-    focusInput()
-  }, [])
-
   /* =========================
      DRAG (DISABLE ON MOBILE)
   ========================= */
   const onMouseDown = (e: any) => {
-    if (window.innerWidth < 768) return // disable drag on mobile
+    if (window.innerWidth < 768) return
 
     isDragging.current = true
     document.body.style.cursor = "grabbing"
@@ -169,20 +165,20 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   ========================= */
   return (
     <div
-      onClick={focusInput}
+      onClick={focusInput} // 🔥 ONLY HERE triggers keyboard
       className={`h-screen w-full flex items-center justify-center text-green-400 font-mono transition-all duration-500 ${
         glowExit ? "bg-green-500/20 scale-105" : ""
       }`}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
     >
-      {/* 🔥 HIDDEN INPUT (KEY FIX) */}
+      {/* 🔥 HIDDEN INPUT */}
       <input
         ref={inputRef}
         value={commandInput}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        className="absolute opacity-0 pointer-events-none"
+        className="absolute opacity-0"
       />
 
       {/* TERMINAL DISPLAY */}
