@@ -1,16 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import Blob from "@/components/Blob"
+import dynamic from "next/dynamic"
 import TerminalIntro from "@/components/TerminalIntro"
 import SystemUI from "@/components/SystemUI"
+
+// ✅ FIX: disable SSR for Three.js component
+const Blob = dynamic(() => import("@/components/Blob"), {
+  ssr: false,
+})
 
 export default function Home() {
   const [screen, setScreen] = useState<"terminal" | "system">("terminal")
 
   return (
     <main className="relative w-full h-screen bg-black scanlines">
-      {/* Blob */}
+
+      {/* 🔥 Blob (safe for Vercel now) */}
       <div className="absolute inset-0 z-0">
         <Blob />
       </div>
@@ -21,11 +27,12 @@ export default function Home() {
       {/* UI */}
       <div className="relative z-20">
         {screen === "terminal" ? (
-          <TerminalIntro onComplete={() => setScreen("system")} />
+          <TerminalIntro />
         ) : (
-          <SystemUI goBack={() => setScreen("terminal")} />
+          <SystemUI onExit={() => setScreen("terminal")} />
         )}
       </div>
+
     </main>
   )
 }

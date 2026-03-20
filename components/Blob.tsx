@@ -10,7 +10,7 @@ import * as THREE from "three"
 ========================= */
 
 function Particles() {
-  const ref = useRef<any>()
+  const ref = useRef<THREE.Points>(null!)
 
   const particles = useMemo(() => {
     const arr = new Float32Array(5000 * 3)
@@ -29,7 +29,9 @@ function Particles() {
   }, [])
 
   useFrame(() => {
-    ref.current.rotation.y += 0.001
+    if (ref.current) {
+      ref.current.rotation.y += 0.001
+    }
   })
 
   return (
@@ -40,20 +42,22 @@ function Particles() {
 }
 
 /* =========================
-   MAIN GROUP (INTERACTIVE)
+   MAIN GROUP
 ========================= */
 
 function Scene() {
-  const group = useRef<any>()
-  const timer = useRef(new THREE.Timer())
+  const group = useRef<THREE.Group>(null!)
+  const clock = useRef(new THREE.Clock())
 
   useFrame((state) => {
-    const t = timer.current.getElapsed()
+    if (!group.current) return
+
+    const t = clock.current.getElapsedTime()
 
     // auto rotation
     group.current.rotation.y = t * 0.2
 
-    // mouse interaction (smooth follow)
+    // mouse interaction
     const mouseX = state.mouse.x
     const mouseY = state.mouse.y
 
@@ -89,7 +93,7 @@ function Scene() {
       </mesh>
 
       {/* ENERGY RINGS */}
-      {[...Array(5)].map((_, i) => (
+      {Array.from({ length: 5 }).map((_, i) => (
         <mesh key={i} rotation={[Math.PI / 2, 0, i]}>
           <torusGeometry args={[1.5, 0.02, 16, 100]} />
           <meshBasicMaterial
@@ -115,7 +119,6 @@ export default function Blob() {
     <Canvas camera={{ position: [0, 0, 4] }}>
       <ambientLight intensity={0.3} />
       <directionalLight position={[2, 2, 2]} intensity={1.5} />
-
       <Scene />
     </Canvas>
   )
