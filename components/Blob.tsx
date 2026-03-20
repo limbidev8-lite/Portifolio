@@ -6,107 +6,145 @@ import { useRef, useMemo } from "react"
 import * as THREE from "three"
 
 /* =========================
-   PARTICLES
+   PARTICLES (HACKER FIELD)
 ========================= */
 
 function Particles() {
   const ref = useRef<THREE.Points>(null!)
 
   const particles = useMemo(() => {
-    const arr = new Float32Array(5000 * 3)
+    const arr = new Float32Array(3000 * 3)
 
-    for (let i = 0; i < 5000; i++) {
-      const radius = 1.5 + Math.random() * 1.5
+    for (let i = 0; i < 3000; i++) {
+      const r = 2 + Math.random() * 2
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
 
-      arr[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
-      arr[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta)
-      arr[i * 3 + 2] = radius * Math.cos(phi)
+      arr[i * 3] = r * Math.sin(phi) * Math.cos(theta)
+      arr[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
+      arr[i * 3 + 2] = r * Math.cos(phi)
     }
 
     return arr
   }, [])
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (ref.current) {
-      ref.current.rotation.y += 0.001
+      ref.current.rotation.y += delta * 0.2
     }
   })
 
   return (
     <Points ref={ref} positions={particles}>
-      <PointMaterial size={0.01} color="#88ccff" transparent opacity={0.8} />
+      <PointMaterial size={0.015} color="#00ffff" transparent opacity={0.7} />
     </Points>
   )
 }
 
 /* =========================
-   MAIN GROUP
+   CORE BLOB
 ========================= */
 
-function Scene() {
+function Core() {
+  const meshRef = useRef<THREE.Mesh>(null!)
+
+  useFrame((state, delta) => {
+    if (!meshRef.current) return
+
+    // 🔥 smooth mouse follow
+    const targetX = state.mouse.y * 0.8
+    const targetY = state.mouse.x * 0.8
+
+    meshRef.current.rotation.x += (targetX - meshRef.current.rotation.x) * 0.1
+    meshRef.current.rotation.y += (targetY - meshRef.current.rotation.y) * 0.1
+
+    // 🔥 breathing / pulse
+    const scale = 1 + Math.sin(state.clock.elapsedTime * 2) * 0.05
+    meshRef.current.scale.set(scale, scale, scale)
+  })
+
+  return (
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[1, 64, 64]} />
+      <meshPhysicalMaterial
+        color="#00ffff"
+        transmission={1}
+        roughness={0}
+        thickness={1}
+        ior={1.5}
+        transparent
+        opacity={0.25}
+      />
+    </mesh>
+  )
+}
+
+/* =========================
+   WIREFRAME SHELL
+========================= */
+
+function Wire() {
+  const ref = useRef<THREE.Mesh>(null!)
+
+  useFrame((_, delta) => {
+    if (ref.current) {
+      ref.current.rotation.y += delta * 0.15
+    }
+  })
+
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[1.05, 64, 64]} />
+      <meshBasicMaterial
+        wireframe
+        color="#00ffff"
+        transparent
+        opacity={0.2}
+      />
+    </mesh>
+  )
+}
+
+/* =========================
+   ENERGY RINGS
+========================= */
+
+function Rings() {
   const group = useRef<THREE.Group>(null!)
-  const clock = useRef(new THREE.Clock())
 
-  useFrame((state) => {
+  useFrame((_, delta) => {
     if (!group.current) return
-
-    const t = clock.current.getElapsedTime()
-
-    // auto rotation
-    group.current.rotation.y = t * 0.2
-
-    // mouse interaction
-    const mouseX = state.mouse.x
-    const mouseY = state.mouse.y
-
-    group.current.rotation.x += (mouseY * 0.5 - group.current.rotation.x) * 0.05
-    group.current.rotation.y += (mouseX * 0.5 - group.current.rotation.y) * 0.05
+    group.current.rotation.z += delta * 0.2
   })
 
   return (
     <group ref={group}>
-      {/* CORE */}
-      <mesh>
-        <sphereGeometry args={[1, 64, 64]} />
-        <meshPhysicalMaterial
-          transmission={1}
-          roughness={0}
-          thickness={1}
-          ior={1.3}
-          color="#66ccff"
-          transparent
-          opacity={0.2}
-        />
-      </mesh>
-
-      {/* WIRE SPHERE */}
-      <mesh>
-        <sphereGeometry args={[1, 64, 64]} />
-        <meshBasicMaterial
-          wireframe
-          color="#66ccff"
-          transparent
-          opacity={0.15}
-        />
-      </mesh>
-
-      {/* ENERGY RINGS */}
-      {Array.from({ length: 5 }).map((_, i) => (
+      {Array.from({ length: 3 }).map((_, i) => (
         <mesh key={i} rotation={[Math.PI / 2, 0, i]}>
-          <torusGeometry args={[1.5, 0.02, 16, 100]} />
+          <torusGeometry args={[1.5 + i * 0.2, 0.01, 16, 100]} />
           <meshBasicMaterial
-            color="#88ccff"
+            color="#00ffff"
             transparent
-            opacity={0.3}
+            opacity={0.25}
           />
         </mesh>
       ))}
-
-      {/* PARTICLES */}
-      <Particles />
     </group>
+  )
+}
+
+/* =========================
+   SCENE
+========================= */
+
+function Scene() {
+  return (
+    <>
+      <Core />
+      <Wire />
+      <Rings />
+      <Particles />
+    </>
   )
 }
 
@@ -116,10 +154,15 @@ function Scene() {
 
 export default function Blob() {
   return (
-    <Canvas camera={{ position: [0, 0, 4] }}>
-      <ambientLight intensity={0.3} />
-      <directionalLight position={[2, 2, 2]} intensity={1.5} />
-      <Scene />
-    </Canvas>
+    <div className="absolute inset-0 z-0">
+      <Canvas
+        camera={{ position: [0, 0, 4] }}
+        style={{ pointerEvents: "none" }} // 🔥 ensures UI always clickable
+      >
+        <ambientLight intensity={0.3} />
+        <directionalLight position={[2, 2, 2]} intensity={1.5} />
+        <Scene />
+      </Canvas>
+    </div>
   )
 }

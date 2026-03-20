@@ -10,6 +10,8 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   const [commandInput, setCommandInput] = useState("")
   const [glowExit, setGlowExit] = useState(false)
 
+  const inputRef = useRef<HTMLInputElement>(null)
+
   const isDragging = useRef(false)
   const offset = useRef({ x: 0, y: 0 })
   const typingRef = useRef<NodeJS.Timeout | null>(null)
@@ -24,18 +26,23 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
     let current = ""
 
     typingRef.current = setInterval(() => {
-      // 🔥 type multiple characters at once (faster + smoother)
       const chunkSize = 3
-
       current += text.slice(i, i + chunkSize)
       setOutput(current)
-
       i += chunkSize
 
       if (i >= text.length) {
         if (typingRef.current) clearInterval(typingRef.current)
       }
-    }, 10) // faster interval
+    }, 10)
+  }
+
+  /* =========================
+     EXIT
+  ========================= */
+  const handleExit = () => {
+    setGlowExit(true)
+    setTimeout(() => onExit && onExit(), 500)
   }
 
   /* =========================
@@ -44,13 +51,8 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   const executeCommand = (cmd: string) => {
     const clean = cmd.trim().toLowerCase()
 
-    // 🔥 BACK TO DESKTOP
     if (clean === "cd .." || clean === "cd..") {
-      setGlowExit(true)
-
-      setTimeout(() => {
-        onExit && onExit()
-      }, 700)
+      handleExit()
       return
     }
 
@@ -64,7 +66,7 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   }
 
   /* =========================
-     CLICK COMMANDS
+     COMMANDS
   ========================= */
   const handleCommand = (cmd: string) => {
     if (cmd === "projects") {
@@ -108,39 +110,39 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   }
 
   /* =========================
-     KEYBOARD INPUT (FIXED)
+     INPUT HANDLING (MOBILE FIX 🔥)
   ========================= */
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      setShowHint(false)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setShowHint(false)
+    setCommandInput(e.target.value)
+  }
 
-      setCommandInput((prev) => {
-        if (e.key === "Backspace") return prev.slice(0, -1)
-
-        if (e.key === "Enter") {
-          executeCommand(prev)
-          return ""
-        }
-
-        if (e.key.length === 1) {
-          return prev + e.key
-        }
-
-        return prev
-      })
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      executeCommand(commandInput)
+      setCommandInput("")
     }
+  }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+  /* =========================
+     AUTO FOCUS ON CLICK
+  ========================= */
+  const focusInput = () => {
+    inputRef.current?.focus()
+  }
+
+  useEffect(() => {
+    focusInput()
   }, [])
 
   /* =========================
-     DRAG LOGIC
+     DRAG (DISABLE ON MOBILE)
   ========================= */
   const onMouseDown = (e: any) => {
+    if (window.innerWidth < 768) return // disable drag on mobile
+
     isDragging.current = true
     document.body.style.cursor = "grabbing"
-    setShowHint(false)
 
     offset.current = {
       x: e.clientX - position.x,
@@ -167,13 +169,23 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
   ========================= */
   return (
     <div
+      onClick={focusInput}
       className={`h-screen w-full flex items-center justify-center text-green-400 font-mono transition-all duration-500 ${
         glowExit ? "bg-green-500/20 scale-105" : ""
       }`}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
     >
-      {/* 🔥 GLOBAL TERMINAL INPUT */}
+      {/* 🔥 HIDDEN INPUT (KEY FIX) */}
+      <input
+        ref={inputRef}
+        value={commandInput}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className="absolute opacity-0 pointer-events-none"
+      />
+
+      {/* TERMINAL DISPLAY */}
       <div className="absolute top-6 w-full flex justify-center pointer-events-none">
         <div className="flex items-center text-green-400 text-sm tracking-widest">
           <span className="mr-2">C:\SYSTEM&gt;</span>
@@ -184,38 +196,26 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
 
       {/* INSTRUCTION */}
       {showHint && (
-        <div className="absolute top-14 w-full text-center text-green-400 text-sm animate-pulse pointer-events-none">
-          type <span className="text-white">cd ..</span> to return
+        <div className="absolute top-14 w-full text-center text-sm animate-pulse">
+          tap anywhere to type or use <span className="text-white">cd ..</span>
         </div>
       )}
-
-      {/* DRAG HINT */}
-      {showHint && (
-        <div className="absolute top-20 w-full text-center text-xs opacity-50 animate-pulse pointer-events-none">
-          ( drag this window )
-        </div>
-      )}
-
-      {/* GITHUB */}
-      <a
-        href="https://github.com/Limbika2222"
-        target="_blank"
-        className="absolute bottom-6 text-xs opacity-70 hover:text-white"
-      >
-        ↗ github.com/Limbika2222
-      </a>
 
       {/* PANEL */}
       <div
         onMouseDown={onMouseDown}
-        style={{
-          transform: `translate(${position.x}px, ${position.y}px)`,
-        }}
-        className="w-[600px] max-w-full border border-green-500 p-6 bg-transparent shadow-[0_0_20px_#00ff00] cursor-grab"
+        style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+        className="relative w-[600px] max-w-full border border-green-500 p-6 bg-black/80 shadow-[0_0_20px_#00ff00]"
       >
-        <div className="mb-4 text-sm opacity-70">
-          USER: LIMBIKA
-        </div>
+        {/* CLOSE */}
+        <button
+          onClick={handleExit}
+          className="absolute top-2 right-3 text-green-400 hover:text-red-400 text-lg"
+        >
+          ✕
+        </button>
+
+        <div className="mb-4 text-sm opacity-70">USER: LIMBIKA</div>
 
         <div className="space-y-2">
           <div onClick={() => handleCommand("projects")} className="cursor-pointer hover:text-white">
@@ -235,7 +235,6 @@ export default function SystemUI({ onExit }: { onExit?: () => void }) {
           </div>
         </div>
 
-        {/* OUTPUT */}
         <div className="mt-6 whitespace-pre-line border-t border-green-500 pt-4 min-h-[120px]">
           {output}
         </div>
